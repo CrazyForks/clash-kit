@@ -1,6 +1,7 @@
 {
   "name": "clash-cli",
   "version": "1.0.0",
+  "type": "module",
   "description": "",
   "bin": {
     "clash": "./bin/index.js"
@@ -14,6 +15,10 @@
   "license": "ISC",
   "packageManager": "pnpm@10.23.0",
   "dependencies": {
-    "axios": "^1.13.2"
+    "@inquirer/prompts": "^8.1.0",
+    "axios": "^1.13.2",
+    "commander": "^14.0.2",
+    "inquirer": "^13.1.0",
+    "yaml": "^2.8.2"
   }
 }

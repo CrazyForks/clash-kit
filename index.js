@@ -1,6 +1,10 @@
-const { spawn } = require('child_process')
-const axios = require('axios')
-const path = require('path')
+import { spawn } from 'child_process'
+import axios from 'axios'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // ---------------- 1. 配置项 ----------------
 const CLASH_BIN_PATH = path.join(__dirname, 'clash-meta') // 解压后的二进制文件路径
@@ -65,7 +69,7 @@ async function switchProxy(groupName, proxyName) {
 }
 
 // ---------------- 4. 执行流程 ----------------
-async function main() {
+export async function main() {
   // 启动 Clash.Meta
   const clashProcess = startClash()
 
@@ -86,8 +90,6 @@ async function main() {
 }
 
 // 运行脚本
-if (require.main === module) {
+if (process.argv[1] === __filename) {
   main()
 }
-
-module.exports = { main }

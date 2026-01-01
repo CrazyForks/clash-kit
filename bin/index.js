@@ -4,6 +4,7 @@ import { Command } from 'commander'
 import { select, input } from '@inquirer/prompts'
 import path from 'path'
 import fs from 'fs'
+import { execSync } from 'child_process'
 import { fileURLToPath } from 'url'
 import { main as startClashService } from '../index.js'
 import * as api from '../lib/api.js'
@@ -41,6 +42,21 @@ program
   .description('启动 Clash 服务')
   .action(() => {
     startClashService()
+  })
+
+// 2.1 Stop 命令
+program
+  .command('stop')
+  .description('停止 Clash 服务')
+  .action(() => {
+    try {
+      // 使用 pkill 匹配进程名包含 clash-meta 的进程
+      execSync('pkill -f clash-meta')
+      console.log('Clash 服务已停止')
+    } catch (err) {
+      // pkill 如果没找到进程会抛出错误，这里捕获并提示
+      console.log('未找到运行中的 Clash 服务，或已停止')
+    }
   })
 
 // 3. Subscribe 命令

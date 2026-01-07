@@ -10,7 +10,10 @@ import { main as startClashService } from '../index.js'
 import * as api from '../lib/api.js'
 import * as sub from '../lib/subscription.js'
 import * as sysproxy from '../lib/sysproxy.js'
+import * as tun from '../lib/tun.js'
+import * as sysnet from '../lib/sysnet.js'
 import { downloadClash } from '../lib/kernel.js'
+import chalk from 'chalk'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -24,7 +27,7 @@ program
   .command('init')
   .description('初始化 Clash 内核 (下载、解压并设置权限)')
   .option('-f, --force', '强制重新下载内核')
-  .action(async (options) => {
+  .action(async options => {
     const rootDir = path.join(__dirname, '..')
     const binName = process.platform === 'win32' ? 'clash-meta.exe' : 'clash-meta'
     const binPath = path.join(rootDir, binName)
@@ -34,21 +37,31 @@ program
         console.log(`Clash 内核已存在: ${binPath}`)
         console.log('正在检查权限...')
         if (process.platform !== 'win32') {
-          fs.chmodSync(binPath, 0o755)
+          // 检查是否已有 SUID 权限，如果有则不再重置为 755
+          const stats = fs.statSync(binPath)
+          const hasSuid = (stats.mode & 0o4000) === 0o4000
+
+          if (!hasSuid) {
+            fs.chmodSync(binPath, 0o755)
+            console.log('权限已设置为 755 (普通执行权限)。')
+          } else {
+            console.log('检测到 SUID 权限，保持不变。')
+          }
         }
         console.log('权限检查通过！')
         return
       }
-      
+
       if (options.force && fs.existsSync(binPath)) {
         console.log('强制更新模式，正在移除旧内核...')
-        try { fs.unlinkSync(binPath) } catch(e) {}
+        try {
+          fs.unlinkSync(binPath)
+        } catch (e) {}
       }
 
       console.log('正在初始化 Clash 内核...')
       await downloadClash(rootDir)
       console.log('Clash 内核初始化成功！')
-      
     } catch (err) {
       console.error(`初始化失败: ${err.message}`)
       process.exit(1)
@@ -124,6 +137,101 @@ program
       } else {
         await sysproxy.disableSystemProxy()
       }
+    }
+  })
+
+// 2.3 Tun 命令
+program
+  .command('tun')
+  .description('设置 TUN 模式 (可能需要提权)')
+  .argument('[action]', 'on 或 off')
+  .action(async action => {
+    try {
+      let shouldRestart = false
+
+      if (action === 'on') {
+        if (process.platform !== 'win32') {
+          const hasPerm = tun.checkTunPermissions()
+          const isRoot = process.getuid && process.getuid() === 0
+
+          if (!hasPerm && !isRoot) {
+            console.log(chalk.yellow('检测到内核缺少 SUID 权限，当前也非 Root 用户，TUN 模式可能无法启动。'))
+            const confirm = await select({
+              message: '是否自动授予内核 SUID 权限 (推荐)?',
+              choices: [
+                { name: '是 (仅需输入一次 sudo 密码)', value: true },
+                { name: '否 (之后需要 sudo clash start)', value: false },
+              ],
+            })
+            if (confirm) {
+              tun.setupPermissions()
+              console.log(chalk.green('权限设置成功！'))
+              shouldRestart = true
+            }
+          }
+        }
+
+        console.log('正在开启 TUN 模式...')
+        await tun.enableTun()
+        sysnet.setDNS(['223.5.5.5', '114.114.114.114'])
+        console.log(chalk.green('TUN 模式配置已开启'))
+
+        if (shouldRestart) {
+          console.log(chalk.yellow('因为更改了权限，正在重启 Clash 服务以应用更改...'))
+          startClashService()
+        } else {
+          console.log(chalk.gray('提示: 如果 TUN 模式未生效，请尝试运行 "clash start" 重启服务。'))
+        }
+      } else if (action === 'off') {
+        console.log('正在关闭 TUN 模式...')
+        await tun.disableTun()
+        sysnet.setDNS([]) // 恢复系统默认 DNS
+        console.log(chalk.green('TUN 模式配置已关闭'))
+        console.log(chalk.gray('配置已热重载。'))
+      } else {
+        const isEnabled = await tun.isTunEnabled()
+        const answer = await select({
+          message: `请选择 TUN 模式操作 (当前状态: ${isEnabled ? chalk.green('开启') : chalk.gray('关闭')}):`,
+          choices: [
+            { name: '开启 TUN 模式', value: 'on' },
+            { name: '关闭 TUN 模式', value: 'off' },
+          ],
+        })
+        if (answer === 'on') {
+          if (process.platform !== 'win32') {
+            const hasPerm = tun.checkTunPermissions()
+            const isRoot = process.getuid && process.getuid() === 0
+            if (!hasPerm && !isRoot) {
+              console.log(chalk.yellow('提示: 建议授予内核 SUID 权限以避免 sudo 启动。'))
+              const confirm = await select({
+                message: '是否授予权限?',
+                choices: [
+                  { name: '是', value: true },
+                  { name: '否', value: false },
+                ],
+              })
+              if (confirm) {
+                tun.setupPermissions()
+                shouldRestart = true
+              }
+            }
+          }
+          await tun.enableTun()
+          sysnet.setDNS(['223.5.5.5', '114.114.114.114'])
+          console.log(chalk.green('TUN 模式配置已开启'))
+
+          if (shouldRestart) {
+            console.log(chalk.yellow('正在重启 Clash 服务...'))
+            startClashService()
+          }
+        } else {
+          await tun.disableTun()
+          sysnet.setDNS([])
+          console.log(chalk.green('TUN 模式配置已关闭'))
+        }
+      }
+    } catch (err) {
+      console.error(chalk.red(`设置 TUN 模式失败: ${err.message}`))
     }
   })
 
@@ -204,9 +312,18 @@ program
         return
       }
       try {
+        const profiles = sub.listProfiles()
+        const isFirst = profiles.length === 0
+
         console.log(`正在下载订阅: ${options.add}...`)
         await sub.downloadSubscription(options.add, options.name)
         console.log(`订阅 ${options.name} 添加成功！`)
+
+        if (isFirst) {
+          console.log(`检测到这是第一个订阅，正在自动切换到 ${options.name}...`)
+          await sub.useProfile(options.name)
+          console.log(`已自动切换到 ${options.name}`)
+        }
       } catch (err) {
         console.error(err.message)
       }

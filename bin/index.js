@@ -10,6 +10,7 @@ import { main as startClashService } from '../index.js'
 import * as api from '../lib/api.js'
 import * as sub from '../lib/subscription.js'
 import * as sysproxy from '../lib/sysproxy.js'
+import { downloadClash } from '../lib/kernel.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -21,19 +22,36 @@ program.name('clash').description('Clash CLI 管理工具').version('1.0.0')
 // 1. Init 命令
 program
   .command('init')
-  .description('初始化 Clash 二进制文件权限')
-  .action(() => {
-    const binPath = path.join(__dirname, '../clash-meta')
-    console.log(`正在设置权限: ${binPath}`)
+  .description('初始化 Clash 内核 (下载、解压并设置权限)')
+  .option('-f, --force', '强制重新下载内核')
+  .action(async (options) => {
+    const rootDir = path.join(__dirname, '..')
+    const binName = process.platform === 'win32' ? 'clash-meta.exe' : 'clash-meta'
+    const binPath = path.join(rootDir, binName)
+
     try {
-      if (!fs.existsSync(binPath)) {
-        console.error(`错误: 找不到文件 ${binPath}`)
-        process.exit(1)
+      if (fs.existsSync(binPath) && !options.force) {
+        console.log(`Clash 内核已存在: ${binPath}`)
+        console.log('正在检查权限...')
+        if (process.platform !== 'win32') {
+          fs.chmodSync(binPath, 0o755)
+        }
+        console.log('权限检查通过！')
+        return
       }
-      fs.chmodSync(binPath, 0o755)
-      console.log('权限设置成功！')
+      
+      if (options.force && fs.existsSync(binPath)) {
+        console.log('强制更新模式，正在移除旧内核...')
+        try { fs.unlinkSync(binPath) } catch(e) {}
+      }
+
+      console.log('正在初始化 Clash 内核...')
+      await downloadClash(rootDir)
+      console.log('Clash 内核初始化成功！')
+      
     } catch (err) {
-      console.error(`权限设置失败: ${err.message}`)
+      console.error(`初始化失败: ${err.message}`)
+      process.exit(1)
     }
   })
 

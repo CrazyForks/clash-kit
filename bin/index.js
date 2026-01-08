@@ -283,7 +283,8 @@ program
       } else {
         for (const { name, now } of selectors) {
           process.stdout.write(`组 [${name}] 当前节点: ${now} ... 测速中`)
-          const delay = await api.getProxyDelay(now)
+          const testUrl = now === 'DIRECT' ? 'http://connect.rom.miui.com/generate_204' : undefined
+          const delay = await api.getProxyDelay(now, testUrl)
 
           let delayStr = ''
           if (delay > 0) {

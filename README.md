@@ -94,6 +94,10 @@ sudo clash tun on
 | `clash sysproxy`      | 设置系统代理 (on/off)      | `clash sysproxy on`                   |
 | `clash tun`           | 设置 TUN 模式 (on/off)     | `sudo clash tun on`                   |
 
+## 截图
+
+<img width="2742" height="1994" alt="image" src="https://github.com/user-attachments/assets/1183f778-62b0-4ac7-ab55-b821b66161f0" />
+
 ## 目录结构
 
 - `bin/`: CLI 入口文件

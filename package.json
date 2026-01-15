@@ -10,9 +10,11 @@
   "files": [
     "bin",
     "lib",
-    "index.js",
-    "country.mmdb",
+    ".gitignore",
     "default.yaml",
+    "country.mmdb",
+    "index.js",
+    "LICENSE.md",
     "package.json",
     "README.md"
   ],

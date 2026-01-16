@@ -1,6 +1,7 @@
 # Clash Kit
 
-<img width="800" alt="clash-kit" src="https://github.com/user-attachments/assets/b8468ef1-b2bd-4f08-93ba-e2f9eda27958" />
+<img width="800" alt="clash-kit" src="https://github.com/user-attachments/assets/703c8342-c753-47d8-8506-163d1b4a314a" />
+
 
 一个基于 Node.js 的 Clash 命令行管理工具，旨在简化 Clash 的配置管理、订阅切换和节点测速等操作。
 

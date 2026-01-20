@@ -15,8 +15,8 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 // ----------------  配置项 ----------------
-const CLASH_BIN_PATH = path.join(__dirname, 'clash-kit') // 解压后的二进制文件路径
-const CLASH_CONFIG_PATH = path.join(__dirname, 'config.yaml') // 配置文件路径
+export const CLASH_BIN_PATH = path.join(__dirname, 'clash-kit') // 解压后的二进制文件路径
+export const CLASH_CONFIG_PATH = path.join(__dirname, 'config.yaml') // 配置文件路径
 
 async function checkPorts() {
   try {

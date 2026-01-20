@@ -45,7 +45,7 @@ program
 program.command('tun').description('设置 TUN 模式 (可能需要提权)').argument('[action]', 'on 或 off').action(setTun)
 
 // 查看 clash 状态
-program.command('status').alias('st').description('查看 Clash 运行状态').action(status)
+program.command('status').alias('st').alias('view').alias('info').description('查看 Clash 运行状态').action(status)
 
 // 管理订阅
 program
@@ -58,7 +58,11 @@ program
   .action(manageSub)
 
 // 切换节点
-program.command('use').aliases(['node', 'proxy', 'switch']).description('切换节点 (别名: node, proxy, switch)').action(proxy)
+program
+  .command('use')
+  .aliases(['node', 'proxy', 'switch'])
+  .description('切换节点 (别名: node, proxy, switch)')
+  .action(proxy)
 
 // 列出所有节点，并测速
 program

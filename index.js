@@ -4,26 +4,72 @@ import fs from 'fs'
 import chalk from 'chalk'
 import axios from 'axios'
 import ora from 'ora'
+import YAML from 'yaml'
 import { fileURLToPath } from 'url'
 import { getApiBase, getProxyPort } from './lib/api.js'
 import * as sysproxy from './lib/sysproxy.js'
 import * as tun from './lib/tun.js'
+import { isPortOpen, extractPort, getPortOccupier } from './lib/port.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// ---------------- 1. 配置项 ----------------
+// ----------------  配置项 ----------------
 const CLASH_BIN_PATH = path.join(__dirname, 'clash-kit') // 解压后的二进制文件路径
 const CLASH_CONFIG_PATH = path.join(__dirname, 'config.yaml') // 配置文件路径
 
-// ---------------- 2. 启动 Clash.Meta 进程 ----------------
-function startClash() {
+async function checkPorts() {
+  try {
+    if (fs.existsSync(CLASH_CONFIG_PATH)) {
+      const configContent = fs.readFileSync(CLASH_CONFIG_PATH, 'utf8')
+      const config = YAML.parse(configContent)
+
+      const checks = [
+        { key: 'mixed-port', name: 'Mixed Port' },
+        { key: 'port', name: 'HTTP Port' },
+        { key: 'socks-port', name: 'SOCKS Port' },
+        { key: 'external-controller', name: 'External Controller' },
+      ]
+
+      for (const check of checks) {
+        const val = config[check.key]
+        const port = extractPort(val)
+        if (port) {
+          const isOpen = await isPortOpen(port)
+          if (!isOpen) {
+            const occupier = getPortOccupier(port)
+            const occupierInfo = occupier ? ` (被 ${occupier} 占用)` : ''
+
+            console.error(chalk.red(`\n启动失败: 端口 ${port} (${check.name}) 已被占用${occupierInfo}`))
+            console.error(chalk.yellow(`请检查是否有其他代理软件正在运行，或修改 config.yaml 中的 ${check.key} \n`))
+
+            if (!occupierInfo) {
+              console.error(`占用进程未知，可能是权限不足或系统进程`)
+              console.error(chalk.yellow(`提示: 可尝试使用 'sudo lsof -i :${port}' 手动查看端口占用情况`))
+            }
+            process.exit(1)
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error(chalk.yellow('警告: 端口检查预检失败，将尝试直接启动内核:', e.message))
+  }
+}
+
+// ---------------- 启动 Clash.Meta 进程 ----------------
+async function startClash() {
   // 尝试停止已存在的进程
   try {
     execSync('pkill -f clash-kit')
+    // 稍微等待端口释放，避免 restart 时偶发端口占用报错
+    await new Promise(resolve => setTimeout(resolve, 500))
   } catch (e) {
     // 忽略错误，说明没有运行中的进程
   }
+
+  // 检查端口占用 (核心策略：报错/启动失败)
+  await checkPorts()
 
   const logPath = path.join(__dirname, 'clash.log')
   const logFd = fs.openSync(logPath, 'a')
@@ -52,7 +98,7 @@ function startClash() {
   return clashProcess
 }
 
-// ---------------- 3. 清理函数 ----------------
+// 清理函数
 async function cleanup() {
   try {
     // 关闭系统代理
@@ -77,7 +123,7 @@ async function cleanup() {
   }
 }
 
-// ---------------- 4. 注册进程退出处理 ----------------
+// 注册进程退出处理
 function setupExitHandlers() {
   // 处理正常退出 (Ctrl+C)
   process.on('SIGINT', async () => {
@@ -101,7 +147,7 @@ function setupExitHandlers() {
   })
 }
 
-// ---------------- 5. 执行流程 ----------------
+// 检查服务健康状态
 async function checkServiceHealth(apiBase, maxRetries = 20) {
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -128,7 +174,7 @@ export async function main() {
   // 设置退出处理
   setupExitHandlers()
 
-  const clashProcess = startClash()
+  const clashProcess = await startClash()
 
   const spinner = ora('正在等待服务启动...').start()
   const started = await checkServiceHealth(getApiBase())

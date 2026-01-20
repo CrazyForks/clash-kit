@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander'
+import { createRequire } from 'module'
 import { init } from '../lib/commands/init.js'
 import { start } from '../lib/commands/start.js'
 import { stop } from '../lib/commands/stop.js'
@@ -11,9 +12,12 @@ import { manageSub } from '../lib/commands/sub.js'
 import { proxy } from '../lib/commands/proxy.js'
 import { test } from '../lib/commands/test.js'
 
+const require = createRequire(import.meta.url)
+const pkg = require('../package.json')
+
 const program = new Command()
 
-program.name('clash').alias('ck').description('Clash CLI 管理工具 (Alias: ck)').version('1.0.0')
+program.name('clash').alias('ck').description('Clash CLI 管理工具 (Alias: ck)').version(pkg.version, '-v, --version')
 
 // 初始化 clash 内核
 program
@@ -72,5 +76,10 @@ program
   .alias('t')
   .description('节点测速 (别名: list, ls, test, t) ')
   .action(test)
+
+// Support -V for version
+if (process.argv.includes('-V')) {
+  process.argv[process.argv.indexOf('-V')] = '-v'
+}
 
 program.parse(process.argv)

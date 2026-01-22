@@ -10,12 +10,13 @@ import { getApiBase, getProxyPort } from './lib/api.js'
 import * as sysproxy from './lib/sysproxy.js'
 import * as tun from './lib/tun.js'
 import { isPortOpen, extractPort, getPortOccupier } from './lib/port.js'
+import { killClashProcess } from './lib/kernel.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 // ----------------  配置项 ----------------
-export const CLASH_BIN_PATH = path.join(__dirname, 'clash-kit') // 解压后的二进制文件路径
+export const CLASH_BIN_PATH = path.join(__dirname, process.platform === 'win32' ? 'clash-kit.exe' : 'clash-kit') // 解压后的二进制文件路径
 export const CLASH_CONFIG_PATH = path.join(__dirname, 'config.yaml') // 配置文件路径
 
 async function checkPorts() {
@@ -60,13 +61,9 @@ async function checkPorts() {
 // ---------------- 启动 Clash.Meta 进程 ----------------
 async function startClash() {
   // 尝试停止已存在的进程
-  try {
-    execSync('pkill -f clash-kit')
-    // 稍微等待端口释放，避免 restart 时偶发端口占用报错
-    await new Promise(resolve => setTimeout(resolve, 500))
-  } catch (e) {
-    // 忽略错误，说明没有运行中的进程
-  }
+  killClashProcess()
+  // 稍微等待端口释放，避免 restart 时偶发端口占用报错
+  await new Promise(resolve => setTimeout(resolve, 500))
 
   // 检查端口占用 (核心策略：报错/启动失败)
   await checkPorts()
@@ -112,11 +109,8 @@ async function cleanup() {
     }
 
     // 停止 Clash 进程
-    try {
-      execSync('pkill -f clash-kit')
+    if (killClashProcess()) {
       console.log('Clash 服务已停止')
-    } catch (e) {
-      // 进程可能已经停止
     }
   } catch (error) {
     console.error('清理过程出错:', error.message)
@@ -190,7 +184,9 @@ export async function main() {
     }
     try {
       process.kill(clashProcess.pid)
-    } catch (e) {}
+    } catch (e) {
+      console.error('停止 Clash 进程时出错:', e)
+    }
     process.exit(1)
   }
 

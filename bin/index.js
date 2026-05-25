@@ -12,6 +12,7 @@ import { status } from '../lib/commands/status.js'
 import { manageSub } from '../lib/commands/sub.js'
 import { proxy } from '../lib/commands/proxy.js'
 import { test } from '../lib/commands/test.js'
+import { migrateLegacyData } from '../lib/paths.js'
 import updateNotifier from 'update-notifier'
 
 const require = createRequire(import.meta.url)
@@ -35,6 +36,11 @@ updateNotifier({
 const program = new Command()
 
 program.name('clash').alias('ck').description('Clash CLI 管理工具 (Alias: ck)').version(pkg.version, '-v, --version')
+
+program.hook('preAction', (_thisCommand, actionCommand) => {
+  if (actionCommand.name() === 'init') return
+  migrateLegacyData()
+})
 
 // 初始化 clash 内核
 program

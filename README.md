@@ -53,6 +53,10 @@ brew install clash-kit
 ck init # 或者 clash init
 ```
 
+### 2. 数据目录
+
+初始化后的运行数据固定保存在用户目录 `~/.clash-kit`，包括 `config.yaml`、`profiles/`、当前订阅记录、日志、内核二进制和资源文件。升级或重装 `clash-kit` 不会覆盖这些数据。
+
 ### 3. 管理订阅
 
 ```bash

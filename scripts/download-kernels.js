@@ -12,6 +12,22 @@ function getTargets() {
   return targets.length > 0 ? targets : DEFAULT_BUNDLED_TARGETS
 }
 
+function getCachedVersion(kernelsDir, targets) {
+  const manifestPath = path.join(kernelsDir, 'manifest.json')
+  if (!fs.existsSync(manifestPath)) return null
+
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+  if (!manifest.version || !Array.isArray(manifest.targets)) return null
+
+  const filesByTarget = new Map(manifest.targets.map(item => [item.key, item.filename]))
+  for (const key of targets) {
+    const filename = filesByTarget.get(key)
+    if (!filename || !fs.existsSync(path.join(kernelsDir, filename))) return null
+  }
+
+  return manifest.version
+}
+
 async function downloadFile(url, dest) {
   const tmp = `${dest}.tmp`
   const response = await axios({
@@ -29,9 +45,18 @@ async function main() {
   const kernelsDir = packagePath('kernels')
   fs.mkdirSync(kernelsDir, { recursive: true })
 
-  const { data } = await axios.get(MIHOMO_VERSION_URL, { timeout: 30 * 1000 })
-  const version = data.trim()
   const targets = getTargets()
+  let version
+
+  try {
+    const { data } = await axios.get(MIHOMO_VERSION_URL, { timeout: 30 * 1000 })
+    version = data.trim()
+  } catch (err) {
+    version = getCachedVersion(kernelsDir, targets)
+    if (!version) throw err
+    console.warn(`无法获取最新 Mihomo 版本，使用本地缓存: ${version}`)
+  }
+
   const manifest = {
     version,
     targets: [],

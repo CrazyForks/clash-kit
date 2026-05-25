@@ -20,7 +20,12 @@ async function run() {
     
     log.info(`开始处理发布流程: ${name}@${version}`)
 
-    // 2. npm pack 生成 tarball
+    // 2. 下载内置内核压缩包
+    log.info('正在准备内置 Mihomo 内核...')
+    execSync('node scripts/download-kernels.js', { stdio: 'inherit' })
+    log.success('内置 Mihomo 内核准备完成')
+
+    // 3. npm pack 生成 tarball
     // npm pack 会输出生成的文件名，例如 clash-kit-1.1.0.tgz
     log.info('正在执行 npm pack...')
     const tgzName = execSync('npm pack', { encoding: 'utf-8' }).trim()
@@ -31,12 +36,12 @@ async function run() {
     }
     log.success(`打包完成: ${tgzName}`)
 
-    // 3. 计算 SHA256
+    // 4. 计算 SHA256
     const fileBuffer = fs.readFileSync(tgzPath)
     const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex')
     log.success(`计算 SHA256: ${hash}`)
 
-    // 4. 更新 Formula 文件
+    // 5. 更新 Formula 文件
     const formulaPath = path.resolve('Formula', 'clash-kit.rb')
     if (fs.existsSync(formulaPath)) {
       let content = fs.readFileSync(formulaPath, 'utf-8')
@@ -70,7 +75,7 @@ async function run() {
       log.error(`未找到 Formula 文件: ${formulaPath}`)
     }
 
-    // 5. 提示后续操作
+    // 6. 提示后续操作
     // 这里我们可以选择直接帮用户 publish 这个 tgz，或者只是提示
     // 为了稳妥，我们提示用户
     

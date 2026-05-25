@@ -47,6 +47,7 @@ program
   .command('init')
   .description('初始化 Clash 内核 (下载、解压并设置权限)')
   .option('-f, --force', '强制重新下载内核')
+  .option('-r, --remote', '强制跳过内置内核，从 GitHub 下载最新 Mihomo 内核')
   .action(init)
 
 // 启动 clash 服务

@@ -57,6 +57,16 @@ ck init # 或者 clash init
 
 初始化后的运行数据固定保存在用户目录 `~/.clash-kit`，包括 `config.yaml`、`profiles/`、当前订阅记录、日志、内核二进制和资源文件。升级或重装 `clash-kit` 不会覆盖这些数据。
 
+`ck init` 会优先使用 npm 包内置的 Mihomo 内核压缩包并解压到该目录；如果当前平台没有内置压缩包，才会回退到 GitHub 下载。
+
+如需主动从 GitHub 更新到最新 Mihomo 内核：
+
+```bash
+ck init --remote
+```
+
+`ck init --force --remote` 与 `ck init --remote` 等价，都会强制跳过内置内核并从 GitHub 下载。
+
 ### 3. 管理订阅
 
 ```bash

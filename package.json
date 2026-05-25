@@ -1,8 +1,16 @@
 {
   "name": "clash-kit",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "type": "module",
   "description": "A command-line interface for managing Clash configurations, subscriptions, and proxies.",
+  "homepage": "https://github.com/wangrongding/clash-kit#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wangrongding/clash-kit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wangrongding/clash-kit/issues"
+  },
   "bin": {
     "ck": "./bin/index.js",
     "clash": "./bin/index.js"
@@ -29,8 +37,12 @@
     "subscription",
     "manager"
   ],
-  "author": "荣顶",
-  "license": "ISC",
+  "author": {
+    "name": "荣顶",
+    "email": "wangrongding@guazi.com",
+    "url": "https://github.com/wangrongding"
+  },
+  "license": "MIT",
   "packageManager": "pnpm@10.23.0",
   "dependencies": {
     "@inquirer/prompts": "^8.1.0",

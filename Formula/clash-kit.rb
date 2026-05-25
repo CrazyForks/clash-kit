@@ -3,9 +3,9 @@ require "language/node"
 class ClashKit < Formula
   desc "A command-line interface for managing Clash configurations, subscriptions, and proxies"
   homepage "https://github.com/wangrongding/clash-kit"
-  url "https://registry.npmjs.org/clash-kit/-/clash-kit-1.1.5.tgz"
-  sha256 "8d7c6bca5857094391bc9bed13db734f48ba84af900776422e28e1950c6334a8"
-  license "ISC"
+  url "https://registry.npmjs.org/clash-kit/-/clash-kit-1.1.6.tgz"
+  sha256 "2dc2cf924752657062dbd15e08d497f1bc9b0d7eeba8db2ac00a6107b7dfc5d7"
+  license "MIT"
 
   depends_on "node"
 
